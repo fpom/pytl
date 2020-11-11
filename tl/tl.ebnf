@@ -1,0 +1,42 @@
+@@grammar :: tl
+
+start =
+    phi $
+    ;
+
+phi =
+    | "(" phi1:phi ")"
+    | op:"~" phi1:phi
+    | mod:quantifier phi1:phi
+    | mod:unarymod phi1:phi
+    | phi1:phi op:boolop phi2:phi
+    | phi1:phi mod:binarymod phi2:phi
+    | phi1:atom
+    ;
+
+boolop =
+    | "&"
+    | "|"
+    | "=>"
+    | "<=>"
+    ;
+
+quantifier =
+    op:/[AE]/ { "{" act:actions "}" }
+    ;
+
+unarymod =
+    op:/[XFG]/ { "{" act:actions "}" }
+    ;
+
+binarymod =
+    { "{" act1:actions "}" } op:/[UR]/ { "{" act2:actions "}" }
+    ;
+
+atom =
+    /\w+|"\w+"|'\w+'/
+    ;
+
+actions =
+    ",".{ { "~" } atom }
+    ;
