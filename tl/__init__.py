@@ -15,7 +15,7 @@ class Phi (dict) :
                          + [repr(c) for c in self.children]
                          + [f"{k}={v!r}" for k, v in self.items()])
         return f"{self.__class__.__name__}({args})"
-    def _tl (self, syntax, node) :
+    def __call__ (self, syntax, node) :
         try :
             handler = getattr(self, f"_{syntax}_{node.kind}")
             assert handler is not None, f"{node.kind!r} not accepted"
@@ -23,93 +23,136 @@ class Phi (dict) :
         except AssertionError as err :
             raise ValueError(f"invalid {syntax} formula ({err})")
     ##
+    ## CTL tree
+    ##
+    def ctl (self) :
+        return self("ctl", self)
+    def _ctl (self, node) :
+        return Phi(node.kind, *(self("ctl", child) for child in node.children), **node)
+    def _ctl_name (self, node) :
+        return Phi(node.kind, *node.children, **node)
+    def _ctl_bool (self, node) :
+        return Phi(node.kind, *node.children, **node)
+    def _ctl_not (self, node) :
+        return self._ctl(node)
+    def _ctl_and (self, node) :
+        return self._ctl(node)
+    def _ctl_or (self, node) :
+        return self._ctl(node)
+    def _ctl_imply (self, node) :
+        return self._ctl(node)
+    def _ctl_iff (self, node) :
+        return self._ctl(node)
+    def _ctl_A (self, node) :
+        assert node.children[0].kind in "XFGUR", "A must be followed by X, F, G, U, or R"
+        for child in node.children[0].children :
+            assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
+        return Phi("A" + node.children[0].kind,
+                   *(self("ctl", child) for child in node.children[0].children),
+                   **node)
+    def _ctl_E (self, node) :
+        assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
+        for child in node.children[0].children :
+            assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
+        return Phi("E" + node.children[0].kind,
+                   *(self("ctl", child) for child in node.children[0].children),
+                   **node)
+    ##
     ## ITS CTL syntax
     ##
     def its_ctl (self) :
-        return self._tl("its_ctl", self) + ";"
-    def _its_ctl_atom (self, node) :
+        return self("its_ctl", self) + ";"
+    def _its_ctl_name (self, node) :
         return '"{}=1"'.format(node.children[0])
+    def _its_ctl_bool (self, node) :
+        return str(node.children[0]).lower()
     def _its_ctl_not (self, node) :
-        return "!({})".format(self._tl("its_ctl", node.children[0]))
+        return "!({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_and (self, node) :
-        return "({})&&({})".format(self._tl("its_ctl", node.children[0]),
-                                   self._tl("its_ctl", node.children[1]))
+        return "({})&&({})".format(self("its_ctl", node.children[0]),
+                                   self("its_ctl", node.children[1]))
     def _its_ctl_or (self, node) :
-        return "({})||({})".format(self._tl("its_ctl", node.children[0]),
-                                   self._tl("its_ctl", node.children[1]))
+        return "({})||({})".format(self("its_ctl", node.children[0]),
+                                   self("its_ctl", node.children[1]))
     def _its_ctl_imply (self, node) :
-        return "({})->({})".format(self._tl("its_ctl", node.children[0]),
-                                   self._tl("its_ctl", node.children[1]))
+        return "({})->({})".format(self("its_ctl", node.children[0]),
+                                   self("its_ctl", node.children[1]))
     def _its_ctl_iff (self, node) :
-        return "({})<->({})".format(self._tl("its_ctl", node.children[0]),
-                                    self._tl("its_ctl", node.children[1]))
+        return "({})<->({})".format(self("its_ctl", node.children[0]),
+                                    self("its_ctl", node.children[1]))
     def _its_ctl_A (self, node) :
         assert node.children[0].kind in "XFGUE", "A must be followed by X, F, G, U, or R"
         assert not node.actions, "actions not allowed"
-        return "A" + self._tl("its_ctl", node.children[0])
+        return "A" + self("its_ctl", node.children[0])
     def _its_ctl_E (self, node) :
         assert node.children[0].kind in "XFGUE", "E must be followed by X, F, G, U, or R"
         assert not node.actions, "actions not allowed"
-        return "E" + self._tl("its_ctl", node.children[0])
+        return "E" + self("its_ctl", node.children[0])
     def _its_ctl_X (self, node) :
         assert not node.actions, "actions not allowed"
-        return "X" + self._tl("its_ctl", node.children[0])
+        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in X"
+        return "X({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_F (self, node) :
         assert not node.actions, "actions not allowed"
-        return "F" + self._tl("its_ctl", node.children[0])
+        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in F"
+        return "F({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_G (self, node) :
         assert not node.actions, "actions not allowed"
-        return "G" + self._tl("its_ctl", node.children[0])
+        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in G"
+        return "G({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_U (self, node) :
         assert not node.left_actions, "actions not allowed"
         assert not node.right_actions, "actions not allowed"
-        return "(({})U({}))".format(self._tl("its_ctl", node.children[0]),
-                                    self._tl("its_ctl", node.children[1]))
+        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in U"
+        return "(({})U({}))".format(self("its_ctl", node.children[0]),
+                                    self("its_ctl", node.children[1]))
     def _its_ctl_R (self, node) :
         assert not node.left_actions, "actions not allowed"
         assert not node.right_actions, "actions not allowed"
-        return "(({})R({}))".format(self._tl("its_ctl", node.children[0]),
-                                    self._tl("its_ctl", node.children[1]))
+        return "(({})R({}))".format(self("its_ctl", node.children[0]),
+                                    self("its_ctl", node.children[1]))
     ##
     ## ITS LTL syntax
     ##
     def its_ltl (self) :
-        return self._tl("its_ltl", self)
-    def _its_ltl_atom (self, node) :
+        return self("its_ltl", self)
+    def _its_ltl_name (self, node) :
         return '"{}=1"'.format(node.children[0])
+    def _its_ttl_bool (self, node) :
+        return str(node.children[0]).lower()
     def _its_ltl_not (self, node) :
-        return "!({})".format(self._tl("its_ltl", node.children[0]))
+        return "!({})".format(self("its_ltl", node.children[0]))
     def _its_ltl_and (self, node) :
-        return "({})&&({})".format(self._tl("its_ltl", node.children[0]),
-                                   self._tl("its_ltl", node.children[1]))
+        return "({})&&({})".format(self("its_ltl", node.children[0]),
+                                   self("its_ltl", node.children[1]))
     def _its_ltl_or (self, node) :
-        return "({})||({})".format(self._tl("its_ltl", node.children[0]),
-                                   self._tl("its_ltl", node.children[1]))
+        return "({})||({})".format(self("its_ltl", node.children[0]),
+                                   self("its_ltl", node.children[1]))
     def _its_ltl_imply (self, node) :
-        return "({})->({})".format(self._tl("its_ltl", node.children[0]),
-                                   self._tl("its_ltl", node.children[1]))
+        return "({})->({})".format(self("its_ltl", node.children[0]),
+                                   self("its_ltl", node.children[1]))
     def _its_ltl_iff (self, node) :
-        return "({})<->({})".format(self._tl("its_ltl", node.children[0]),
-                                    self._tl("its_ltl", node.children[1]))
+        return "({})<->({})".format(self("its_ltl", node.children[0]),
+                                    self("its_ltl", node.children[1]))
     def _its_ltl_X (self, node) :
         assert not node.actions, "actions not allowed"
-        return "X" + self._tl("its_ltl", node.children[0])
+        return "X" + self("its_ltl", node.children[0])
     def _its_ltl_F (self, node) :
         assert not node.actions, "actions not allowed"
-        return "F" + self._tl("its_ltl", node.children[0])
+        return "F" + self("its_ltl", node.children[0])
     def _its_ltl_G (self, node) :
         assert not node.actions, "actions not allowed"
-        return "G" + self._tl("its_ltl", node.children[0])
+        return "G" + self("its_ltl", node.children[0])
     def _its_ltl_U (self, node) :
         assert not node.left_actions, "actions not allowed"
         assert not node.right_actions, "actions not allowed"
-        return "(({})U({}))".format(self._tl("its_ltl", node.children[0]),
-                                    self._tl("its_ltl", node.children[1]))
+        return "(({})U({}))".format(self("its_ltl", node.children[0]),
+                                    self("its_ltl", node.children[1]))
     def _its_ltl_R (self, node) :
         assert not node.left_actions, "actions not allowed"
         assert not node.right_actions, "actions not allowed"
-        return "(({})R({}))".format(self._tl("its_ltl", node.children[0]),
-                                    self._tl("its_ltl", node.children[1]))
+        return "(({})R({}))".format(self("its_ltl", node.children[0]),
+                                    self("its_ltl", node.children[1]))
 
 class Parser (object) :
     def __init__ (self) :
@@ -159,7 +202,12 @@ class Parser (object) :
         if st in ("A", "E", "U", "R", "X", "F", "G",
                   "AX", "AF", "AG", "EX", "EF", "EG") :
             raise ValueError(f"variable {st} should be quoted")
-        return Phi("atom", st.strip("\"'"), escaped=st[0] in "\"'")
+        if st == "True" :
+            return Phi("bool", True)
+        elif st == "False" :
+            return Phi("bool", False)
+        else :
+            return Phi("name", st.strip("\"'"), escaped=st[0] in "\"'")
     def actions (self, st) :
         """
         ",".{ { "~" } atom }
