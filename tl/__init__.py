@@ -30,9 +30,9 @@ class Phi (dict) :
     def _ctl (self, node) :
         return Phi(node.kind, *(self("ctl", child) for child in node.children), **node)
     def _ctl_name (self, node) :
-        return Phi(node.kind, *node.children, **node)
+        return Phi(node.kind, **node)
     def _ctl_bool (self, node) :
-        return Phi(node.kind, *node.children, **node)
+        return Phi(node.kind, **node)
     def _ctl_not (self, node) :
         return self._ctl(node)
     def _ctl_and (self, node) :
@@ -63,9 +63,9 @@ class Phi (dict) :
     def its_ctl (self) :
         return self("its_ctl", self) + ";"
     def _its_ctl_name (self, node) :
-        return '"{}=1"'.format(node.children[0])
+        return '"{}=1"'.format(node.value)
     def _its_ctl_bool (self, node) :
-        return str(node.children[0]).lower()
+        return str(node.value).lower()
     def _its_ctl_not (self, node) :
         return "!({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_and (self, node) :
@@ -117,9 +117,9 @@ class Phi (dict) :
     def its_ltl (self) :
         return self("its_ltl", self)
     def _its_ltl_name (self, node) :
-        return '"{}=1"'.format(node.children[0])
+        return '"{}=1"'.format(node.value)
     def _its_ttl_bool (self, node) :
-        return str(node.children[0]).lower()
+        return str(node.value).lower()
     def _its_ltl_not (self, node) :
         return "!({})".format(self("its_ltl", node.children[0]))
     def _its_ltl_and (self, node) :
@@ -203,11 +203,11 @@ class Parser (object) :
                   "AX", "AF", "AG", "EX", "EF", "EG") :
             raise ValueError(f"variable {st} should be quoted")
         if st == "True" :
-            return Phi("bool", True)
+            return Phi("bool", value=True)
         elif st == "False" :
-            return Phi("bool", False)
+            return Phi("bool", value=False)
         else :
-            return Phi("name", st.strip("\"'"), escaped=st[0] in "\"'")
+            return Phi("name", value=st.strip("\"'"), escaped=st[0] in "\"'")
     def actions (self, st) :
         """
         ",".{ { "~" } atom }
