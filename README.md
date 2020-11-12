@@ -47,6 +47,8 @@ For example, `tl.parse("A{foo, ~bar, 'egg'} spam")` returns:
                  Phi('name', value='bar', escaped=False, neg=True),
                  Phi('name', value='egg', escaped=True, neg=False)])
 
+Spacing is not required between quantifiers or modalities. For instance, `AX atom` and `A X atom` are both parsed as `Phi('A', Phi('X', Phi('name', value='atom', escaped=False)))`. Moreover, an atom is never extracted by splitting a word, for instance `AX Foo` is parsed as `Phi('A', Phi('X', Phi('name', value='Foo, escaped=False)))` and not as `Phi('A', Phi('X', Phi('F', Phi('name', value='oo', escaped=False))))`. Finally, `AXFoo` is parsed as `Phi('name', value='AXFoo', escaped=False)` because isolating atom `Foo` would require to split the word, which is avoided.
+
 ## Translating to a specific syntax
 
 Class `Phi` has methods to translate a formula to a specific syntax. Doing so, the formula is checked to be valid w.r.t. the requested syntax.
