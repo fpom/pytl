@@ -39,11 +39,13 @@ class Phi (dict) :
     def ctl (self) :
         return self("ctl", self)
     def _ctl (self, node) :
-        return Phi(node.kind, *(self("ctl", child) for child in node.children), **node)
+        return self.__class__(node.kind,
+                              *(self("ctl", child) for child in node.children),
+                              **node)
     def _ctl_name (self, node) :
-        return Phi(node.kind, **node)
+        return self.__class__(node.kind, **node)
     def _ctl_bool (self, node) :
-        return Phi(node.kind, **node)
+        return self.__class__(node.kind, **node)
     def _ctl_not (self, node) :
         return self._ctl(node)
     def _ctl_and (self, node) :
@@ -60,17 +62,19 @@ class Phi (dict) :
         for child in node.children[0].children :
             assert child.kind not in "FGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
             assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
-        return Phi("A" + node.children[0].kind,
-                   *(self("ctl", child) for child in node.children[0].children),
-                   **node)
+        return self.__class__("A" + node.children[0].kind,
+                              *(self("ctl", child)
+                                for child in node.children[0].children),
+                              **node)
     def _ctl_E (self, node) :
         assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
         for child in node.children[0].children :
             assert child.kind not in "FGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
             assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
-        return Phi("E" + node.children[0].kind,
-                   *(self("ctl", child) for child in node.children[0].children),
-                   **node)
+        return self.__class__("E" + node.children[0].kind,
+                              *(self("ctl", child)
+                                for child in node.children[0].children),
+                              **node)
     ##
     ## ITS CTL syntax
     ##
@@ -177,8 +181,9 @@ class Phi (dict) :
                                     self("its_ltl", node.children[1]))
 
 class Parser (object) :
-    def __init__ (self) :
+    def __init__ (self, phiclass=Phi) :
         self.p = tlParser()
+        self.c = phiclass
     def __call__ (self, source) :
         return self.p.parse(source, "start", semantics=self)
     _op = {"~" : "not",
@@ -197,26 +202,26 @@ class Parser (object) :
         | phi1:atom
         """
         if st.op is not None :
-            return Phi(self._op[st.op], st.phi1, st.phi2)
+            return self.c(self._op[st.op], st.phi1, st.phi2)
         elif st.mod is not None :
-            return Phi(st.mod.kind, st.phi1, st.phi2, **st.mod)
+            return self.c(st.mod.kind, st.phi1, st.phi2, **st.mod)
         else :
             return st.phi1
     def quantifier (self, st) :
         """
         op:/[AE]/ { "{" act:action "}" }
         """
-        return Phi(st.op, actions=st.act)
+        return self.c(st.op, actions=st.act)
     def unarymod (self, st) :
         """
         op:/[XFG]/ { "{" act:action "}" }
         """
-        return Phi(st.op, actions=st.act)
+        return self.c(st.op, actions=st.act)
     def binarymod (self, st) :
         """
         { "{" act1:action "}" } op:/[UR]/ { "{" act2:action "}" }
         """
-        return Phi(st.op, left_actions=st.act1, right_actions=st.act2)
+        return self.c(st.op, left_actions=st.act1, right_actions=st.act2)
     def atom (self, st) :
         """
         /\w+|"\w+"|'\w+'/
@@ -225,15 +230,16 @@ class Parser (object) :
                   "AX", "AF", "AG", "EX", "EF", "EG") :
             raise ValueError(f"variable {st} should be quoted")
         if st == "True" :
-            return Phi("bool", value=True)
+            return self.c("bool", value=True)
         elif st == "False" :
-            return Phi("bool", value=False)
+            return self.c("bool", value=False)
         else :
-            return Phi("name", value=st.strip("\"'"), escaped=st[0] in "\"'")
+            return self.c("name", value=st.strip("\"'"), escaped=st[0] in "\"'")
     def actions (self, st) :
         """
         ",".{ { "~" } atom }
         """
-        return [Phi(act.kind, *act.children, **act, neg=bool(sig)) for sig, act in st]
+        return [self.c(act.kind, *act.children, **act, neg=bool(sig))
+                for sig, act in st]
 
 parse = Parser()

@@ -99,6 +99,8 @@ Class `Phi` provides the basic mechanism to write new translations. Say we want 
 
 See `tl/__init__.py` for more details.
 
+Adding these methods can be made on the original one (don't hesitate to send a pull request), or by subclassing `Phi`. In the latter case, one has to build a new `parse` function using `myparse = tl.Parser(MyPhi)` so that it returns an instance of the new class `MyPhi`.
+
 ## Licence
 
 `pytl` is (C) 2020 Franck Pommereau <franck.pommereau@univ-evry.fr>
