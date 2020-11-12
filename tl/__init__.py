@@ -58,7 +58,7 @@ class Phi (dict) :
         assert node.children[0].kind in "XFGUR", "A must be followed by X, F, G, U, or R"
         assert not node.actions, "actions not allowed"
         for child in node.children[0].children :
-            assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
+            assert child.kind not in "FGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
             assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
         return Phi("A" + node.children[0].kind,
                    *(self("ctl", child) for child in node.children[0].children),
@@ -66,7 +66,7 @@ class Phi (dict) :
     def _ctl_E (self, node) :
         assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
         for child in node.children[0].children :
-            assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
+            assert child.kind not in "FGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
             assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
         return Phi("E" + node.children[0].kind,
                    *(self("ctl", child) for child in node.children[0].children),
@@ -108,20 +108,20 @@ class Phi (dict) :
         return "E" + self("its_ctl", node.children[0])
     def _its_ctl_X (self, node) :
         assert not node.actions, "actions not allowed"
-        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in X"
+        assert node.children[0].kind not in "FGURX", f"cannot nest {node.children[0].kind} in X"
         return "X({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_F (self, node) :
         assert not node.actions, "actions not allowed"
-        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in F"
+        assert node.children[0].kind not in "FGURX", f"cannot nest {node.children[0].kind} in F"
         return "F({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_G (self, node) :
         assert not node.actions, "actions not allowed"
-        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in G"
+        assert node.children[0].kind not in "FGURX", f"cannot nest {node.children[0].kind} in G"
         return "G({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_U (self, node) :
         assert not node.left_actions, "actions not allowed"
         assert not node.right_actions, "actions not allowed"
-        assert node.children[0].kind not in "AEFGURX", f"cannot nest {node.children[0].kind} in U"
+        assert node.children[0].kind not in "FGURX", f"cannot nest {node.children[0].kind} in U"
         return "(({})U({}))".format(self("its_ctl", node.children[0]),
                                     self("its_ctl", node.children[1]))
     def _its_ctl_R (self, node) :
