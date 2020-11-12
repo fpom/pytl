@@ -1,6 +1,6 @@
 # Python parser and translator for varied temporal logics
 
-`pytl` parses a temporal logic formula into an abstract syntax tree, and allows to translate it to the syntax expected by model-checking tools. The into syntax is a very general temporal logic that encompasses CTL, LTL, CTL\*, ACTL, ARCTL, ATL, ATL\*, etc. The conformance to a particular syntax is checked when the formula is translated.
+`pytl` parses a temporal logic formula into an abstract syntax tree, and allows to translate it to the syntax expected by model-checking tools. The input syntax supports a very general temporal logic that encompasses CTL, LTL, CTL\*, ACTL, ARCTL, ATL, ATL\*, etc. The conformance to a particular syntax is checked when the formula is translated.
 
 ## Input syntax
 
@@ -49,7 +49,9 @@ For example, `tl.parse("A{foo, ~bar, 'egg'} spam")` returns:
 
 ## Translating to a specific syntax
 
-Class `Phi` has methods to translate a formula to a specific syntax.
+Class `Phi` has methods to translate a formula to a specific syntax. Doing so, the formula is checked to be valid w.r.t. the requested syntax.
+
+### CTL
 
 `Phi.ctl()` returns a new AST whose quantifiers have been collapsed with the following modality. For instance:
 
@@ -67,6 +69,10 @@ If the formula is not a valid CTL formula, an exception `ValueError` is raised. 
          |  "(" phi ")"
          |  atom
 
+With actions forbidden.
+
+### ITS-tools CTL and LTL
+
 `Phi.its_ctl()` returns a string that encodes a CTL formula into the syntax expected by tool `its-ctl`. Here also, the formula has to be valid CTL. The syntax for `its-ctl` is CTL with:
 
   - actions are not allowed
@@ -80,7 +86,7 @@ If the formula is not a valid CTL formula, an exception `ValueError` is raised. 
   - Boolean values are `true` and `false`
   - atoms are written as `"V=1"` is they were not quoted, or `"V"` is they were quoted
 
-`Phi.its_ltl()` returns a string that encodes a LTL formula into the syntax expected by tool `its-ltl`. The formula has to be valid LTL. The syntax for `its-ltl` is as the general syntax without any quantifier nor actions. Then, operators, modalities, Boolean, and atoms are translated as for `its_ctl`.
+`Phi.its_ltl()` returns a string that encodes a LTL formula into the syntax expected by tool `its-ltl`. The formula has to be valid LTL. The syntax for `its-ltl` is as the general syntax without any quantifier nor actions. Then, operators, modalities, Boolean values, and atoms are translated as for `its-ctl`.
 
 ## Adding more translations
 
@@ -92,3 +98,13 @@ Class `Phi` provides the basic mechanism to write new translations. Say we want 
  - additional checks can be performed within each method using `assert`s whose error messages will be reused in the translation error message
 
 See `tl/__init__.py` for more details.
+
+## Licence
+
+`pytl` is (C) 2020 Franck Pommereau <franck.pommereau@univ-evry.fr>
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
