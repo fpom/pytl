@@ -1,4 +1,14 @@
+import functools
 from .tlparse import tlParser
+
+def translator (method) :
+    @functools.wraps(method)
+    def wrapper (self) :
+        try :
+            return method(self)
+        except AssertionError as err :
+            raise ValueError(f"invalid {method.__name__} formula ({err})")
+    return wrapper
 
 class Phi (dict) :
     def __init__ (self, kind, *children, **attr) :
@@ -25,6 +35,7 @@ class Phi (dict) :
     ##
     ## CTL tree
     ##
+    @translator
     def ctl (self) :
         return self("ctl", self)
     def _ctl (self, node) :
@@ -45,8 +56,10 @@ class Phi (dict) :
         return self._ctl(node)
     def _ctl_A (self, node) :
         assert node.children[0].kind in "XFGUR", "A must be followed by X, F, G, U, or R"
+        assert not node.actions, "actions not allowed"
         for child in node.children[0].children :
             assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
+            assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
         return Phi("A" + node.children[0].kind,
                    *(self("ctl", child) for child in node.children[0].children),
                    **node)
@@ -54,16 +67,21 @@ class Phi (dict) :
         assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
         for child in node.children[0].children :
             assert child.kind not in "AEFGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
+            assert not (child.actions or child.left_actions or child.right_actions), "actions not allowed"
         return Phi("E" + node.children[0].kind,
                    *(self("ctl", child) for child in node.children[0].children),
                    **node)
     ##
     ## ITS CTL syntax
     ##
+    @translator
     def its_ctl (self) :
         return self("its_ctl", self) + ";"
     def _its_ctl_name (self, node) :
-        return '"{}=1"'.format(node.value)
+        if node.escaped :
+            return '"{}"'.format(node.value)
+        else :
+            return '"{}=1"'.format(node.value)
     def _its_ctl_bool (self, node) :
         return str(node.value).lower()
     def _its_ctl_not (self, node) :
@@ -114,10 +132,14 @@ class Phi (dict) :
     ##
     ## ITS LTL syntax
     ##
+    @translator
     def its_ltl (self) :
         return self("its_ltl", self)
     def _its_ltl_name (self, node) :
-        return '"{}=1"'.format(node.value)
+        if node.escaped :
+            return '"{}"'.format(node.value)
+        else :
+            return '"{}=1"'.format(node.value)
     def _its_ttl_bool (self, node) :
         return str(node.value).lower()
     def _its_ltl_not (self, node) :
@@ -212,6 +234,6 @@ class Parser (object) :
         """
         ",".{ { "~" } atom }
         """
-        return [Phi(*act.children, **act, neg=bool(sig)) for sig, act in st]
+        return [Phi(act.kind, *act.children, **act, neg=bool(sig)) for sig, act in st]
 
 parse = Parser()

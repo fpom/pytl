@@ -203,7 +203,7 @@ class tlParser(Parser):
 
     @tatsumasu()
     def _atom_(self):  # noqa
-        self._pattern('\\w+|"\\w+"|\'\\w+\'')
+        self._pattern('\\w+|"[^\\"]+"|\'[^\\\']+\'')
 
     @tatsumasu()
     def _actions_(self):  # noqa
