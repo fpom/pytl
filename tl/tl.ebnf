@@ -22,15 +22,15 @@ boolop =
     ;
 
 quantifier =
-    op:/[AE]/ { "{" act:actions "}" }
+    op:/[AE]/ [ "{" act:actions "}" ]
     ;
 
 unarymod =
-    op:/[XFG]/ { "{" act:actions "}" }
+    op:/[XFG]/ [ "{" act:actions "}" ]
     ;
 
 binarymod =
-    { "{" act1:actions "}" } op:/[UR]/ { "{" act2:actions "}" }
+    [ "{" act1:actions "}" ] op:/[UR]/ [ "{" act2:actions "}" ]
     ;
 
 atom =
@@ -38,5 +38,8 @@ atom =
     ;
 
 actions =
-    ",".{ { "~" } atom }
+	| "(" act1:actions ")"
+	| op:"~" act1:actions
+    | act1:actions op:boolop act2:actions
+	| act1:atom
     ;

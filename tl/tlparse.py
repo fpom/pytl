@@ -150,13 +150,11 @@ class tlParser(Parser):
     def _quantifier_(self):  # noqa
         self._pattern('[AE]')
         self.name_last_node('op')
-
-        def block1():
+        with self._optional():
             self._token('{')
             self._actions_()
             self.name_last_node('act')
             self._token('}')
-        self._closure(block1)
         self.ast._define(
             ['act', 'op'],
             []
@@ -166,13 +164,11 @@ class tlParser(Parser):
     def _unarymod_(self):  # noqa
         self._pattern('[XFG]')
         self.name_last_node('op')
-
-        def block1():
+        with self._optional():
             self._token('{')
             self._actions_()
             self.name_last_node('act')
             self._token('}')
-        self._closure(block1)
         self.ast._define(
             ['act', 'op'],
             []
@@ -180,22 +176,18 @@ class tlParser(Parser):
 
     @tatsumasu()
     def _binarymod_(self):  # noqa
-
-        def block0():
+        with self._optional():
             self._token('{')
             self._actions_()
             self.name_last_node('act1')
             self._token('}')
-        self._closure(block0)
         self._pattern('[UR]')
         self.name_last_node('op')
-
-        def block3():
+        with self._optional():
             self._token('{')
             self._actions_()
             self.name_last_node('act2')
             self._token('}')
-        self._closure(block3)
         self.ast._define(
             ['act1', 'act2', 'op'],
             []
@@ -206,18 +198,34 @@ class tlParser(Parser):
         self._pattern('\\b(\\w+|"[^\\"]+"|\'[^\\\']+\')\\b')
 
     @tatsumasu()
+    @leftrec
     def _actions_(self):  # noqa
-
-        def sep0():
-            self._token(',')
-
-        def block0():
-
-            def block1():
+        with self._choice():
+            with self._option():
+                self._token('(')
+                self._actions_()
+                self.name_last_node('act1')
+                self._token(')')
+            with self._option():
                 self._token('~')
-            self._closure(block1)
-            self._atom_()
-        self._gather(block0, sep0)
+                self.name_last_node('op')
+                self._actions_()
+                self.name_last_node('act1')
+            with self._option():
+                self._actions_()
+                self.name_last_node('act1')
+                self._boolop_()
+                self.name_last_node('op')
+                self._actions_()
+                self.name_last_node('act2')
+            with self._option():
+                self._atom_()
+                self.name_last_node('act1')
+            self._error('no available options')
+        self.ast._define(
+            ['act1', 'act2', 'op'],
+            []
+        )
 
 
 class tlSemantics(object):
