@@ -1,4 +1,5 @@
 import functools
+import re
 from .tlparse import tlParser
 
 def translator (method) :
@@ -271,8 +272,7 @@ class Parser (object) :
         """
         /\w+|"\w+"|'\w+'/
         """
-        if st in ("A", "E", "U", "R", "X", "F", "G",
-                  "AX", "AF", "AG", "EX", "EF", "EG") :
+        if re.match('^([AE][XFG])|[AEXFGUR]$', st) :
             raise ValueError(f"variable {st} should be quoted")
         if st == "True" :
             return self.c("bool", value=True)
