@@ -24,7 +24,10 @@ The syntax of an input formula `phi` is as follows:
     
     atom ::= /\w+|"[^\"]+"|'[^\']+'/
     
-    actions ::= "~"? atom ("," "~"? atom)*
+    actions ::= "(" actions ")"
+        | "~" actions
+        | actions boolop actions
+        | atom
 
 Where `"..."` are literals, and `/.../` are Python regexps. Note that this grammar makes no distinction between path and state formulas, so that both can be parsed.
 
@@ -37,15 +40,22 @@ The result of `tl.parse()` is an AST provided as an instance of class `Phi`. Its
     - `bool` if the atom was `True` or `False`, in which case its value is provided in attribute `value`
     - `name` if the atom was a name or a string (considered as an escaped name), in which case its value is provided in attribute `value` and another attribute `escaped` tells whether this atom was provided quoted of not
  - `children` is the tuple of sub-formulas
- - if actions have been provided in the input, they are stored in attribute `actions` for unary quantifiers and modalities, or `left_actions` and `right_actions` for binary modalities. Each action is a `Phi` instance for an atom with an additional attribute `neg` that tells whether the atom was negated of not
+ - if actions have been provided in the input, they are stored in attribute `actions` for unary quantifiers and modalities, or `left_actions` and `right_actions` for binary modalities. Each action is a `Phi` instance representing a boolean expression over actions
 
-For example, `tl.parse("A{foo, ~bar, 'egg'} spam")` returns:
+For example, `tl.parse("A{foo | ~('bar' & egg)} spam")` returns:
 
-    Phi('A',
-        Phi('name', value='spam', escaped=False),
-        actions=[Phi('name', value='foo', escaped=False, neg=False),
-                 Phi('name', value='bar', escaped=False, neg=True),
-                 Phi('name', value='egg', escaped=True, neg=False)])
+    Phi('A', 
+        Phi('name', value='spam', escaped=False), 
+        actions=Phi('or', 
+            Phi('name', value='foo', escaped=False), 
+            Phi('not', 
+                Phi('and', 
+                    Phi('name', value='bar', escaped=True), 
+                    Phi('name', value='egg', escaped=False)
+                    )
+                )
+            )
+        )
 
 Spacing is not required between quantifiers or modalities. For instance, `AX atom` and `A X atom` are both parsed as `Phi('A', Phi('X', Phi('name', value='atom', escaped=False)))`. Moreover, an atom is never extracted by splitting a word, for instance `AX Foo` is parsed as `Phi('A', Phi('X', Phi('name', value='Foo, escaped=False)))` and not as `Phi('A', Phi('X', Phi('F', Phi('name', value='oo', escaped=False))))`. Finally, `AXFoo` is parsed as `Phi('name', value='AXFoo', escaped=False)` because isolating atom `Foo` would require to split the word, which is avoided.
 
@@ -55,7 +65,7 @@ Class `Phi` has methods to translate a formula to a specific syntax. Doing so, t
 
 ### CTL
 
-`Phi.ctl()` returns a new AST whose quantifiers have been collapsed with the following modality. For instance:
+`Phi.ctl()` returns a new AST whose quantifiers have been collapsed with their following modality. For instance:
 
     >>> parse("AX spam")
     Phi('A', Phi('X', Phi('name', value='spam', escaped=False)))
@@ -72,6 +82,19 @@ If the formula is not a valid CTL formula, an exception `ValueError` is raised. 
          |  atom
 
 With actions forbidden.
+
+### ARCTL
+
+`Phi.arctl()` returns a new AST whose quantifiers have been collapsed with their following modality. The syntax for ARCTL is:
+
+    phi ::= quantifier unarymod phi
+         |  quantifier phi binarymod phi
+         |  phi boolop phi
+         |  "~" phi
+         |  "(" phi ")"
+         |  atom
+
+With actions allowed only on quantifiers but not on temporal modalities.
 
 ### ITS-tools CTL and LTL
 
