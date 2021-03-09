@@ -1,6 +1,11 @@
+"""Python parser and translator for varied temporal logics
+"""
+
 import functools
 import re
 from .tlparse import tlParser
+
+version = "0.1"
 
 def translator (method) :
     @functools.wraps(method)
