@@ -11,7 +11,7 @@
 # the file is generated.
 
 
-from __future__ import print_function, division, absolute_import, unicode_literals
+from __future__ import generator_stop
 
 import sys
 
@@ -37,7 +37,7 @@ class tlBuffer(Buffer):
         namechars='',
         **kwargs
     ):
-        super(tlBuffer, self).__init__(
+        super().__init__(
             text,
             whitespace=whitespace,
             nameguard=nameguard,
@@ -61,12 +61,12 @@ class tlParser(Parser):
         parseinfo=True,
         keywords=None,
         namechars='',
-        buffer_class=tlBuffer,
+        tokenizercls=tlBuffer,
         **kwargs
     ):
         if keywords is None:
             keywords = KEYWORDS
-        super(tlParser, self).__init__(
+        super().__init__(
             whitespace=whitespace,
             nameguard=nameguard,
             comments_re=comments_re,
@@ -76,7 +76,7 @@ class tlParser(Parser):
             parseinfo=parseinfo,
             keywords=keywords,
             namechars=namechars,
-            buffer_class=buffer_class,
+            tokenizercls=tokenizercls,
             **kwargs
         )
 
@@ -90,11 +90,6 @@ class tlParser(Parser):
     @leftrec
     def _phi_(self):  # noqa
         with self._choice():
-            with self._option():
-                self._token('(')
-                self._phi_()
-                self.name_last_node('phi1')
-                self._token(')')
             with self._option():
                 self._token('~')
                 self.name_last_node('op')
@@ -127,7 +122,12 @@ class tlParser(Parser):
             with self._option():
                 self._atom_()
                 self.name_last_node('phi1')
-            self._error('no available options')
+            with self._option():
+                self._token('(')
+                self._phi_()
+                self.name_last_node('phi1')
+                self._token(')')
+            self._error('expecting one of: ( /[AE]/ /[XFG]/ /\\b\\w+\\b|"[^"]+"|\'[^\']+\'/ atom phi quantifier unarymod ~')
         self.ast._define(
             ['mod', 'op', 'phi1', 'phi2'],
             []
@@ -144,7 +144,7 @@ class tlParser(Parser):
                 self._token('=>')
             with self._option():
                 self._token('<=>')
-            self._error('no available options')
+            self._error('expecting one of: & <=> => |')
 
     @tatsumasu()
     def _quantifier_(self):  # noqa
@@ -221,7 +221,7 @@ class tlParser(Parser):
             with self._option():
                 self._atom_()
                 self.name_last_node('act1')
-            self._error('no available options')
+            self._error('expecting one of: ( /\\b\\w+\\b|"[^"]+"|\'[^\']+\'/ actions atom ~')
         self.ast._define(
             ['act1', 'act2', 'op'],
             []
