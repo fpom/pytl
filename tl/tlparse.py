@@ -91,11 +91,6 @@ class tlParser(Parser):
     def _phi_(self):  # noqa
         with self._choice():
             with self._option():
-                self._token('~')
-                self.name_last_node('op')
-                self._phi_()
-                self.name_last_node('phi1')
-            with self._option():
                 self._quantifier_()
                 self.name_last_node('mod')
                 self._phi_()
@@ -121,6 +116,11 @@ class tlParser(Parser):
                 self.name_last_node('phi2')
             with self._option():
                 self._atom_()
+                self.name_last_node('phi1')
+            with self._option():
+                self._token('~')
+                self.name_last_node('op')
+                self._phi_()
                 self.name_last_node('phi1')
             with self._option():
                 self._token('(')
