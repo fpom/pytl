@@ -81,13 +81,11 @@ class tlParser(Parser):
         )
 
     @tatsumasu()
-    @nomemo
     def _start_(self):  # noqa
         self._phi_()
         self._check_eof()
 
     @tatsumasu()
-    @leftrec
     def _phi_(self):  # noqa
         with self._choice():
             with self._option():
@@ -101,35 +99,59 @@ class tlParser(Parser):
                 self._phi_()
                 self.name_last_node('phi1')
             with self._option():
-                self._phi_()
-                self.name_last_node('phi1')
-                self._boolop_()
-                self.name_last_node('op')
-                self._phi_()
-                self.name_last_node('phi2')
-            with self._option():
-                self._phi_()
+                self._expr_()
                 self.name_last_node('phi1')
                 self._binarymod_()
                 self.name_last_node('mod')
-                self._phi_()
+                self._expr_()
                 self.name_last_node('phi2')
             with self._option():
-                self._atom_()
+                self._expr_()
                 self.name_last_node('phi1')
+            self._error('expecting one of: /[AE]/ /[XFG]/ expr quantifier term unarymod')
+        self.ast._define(
+            ['mod', 'phi1', 'phi2'],
+            []
+        )
+
+    @tatsumasu()
+    def _expr_(self):  # noqa
+        with self._choice():
             with self._option():
-                self._token('~')
-                self.name_last_node('op')
-                self._phi_()
+                self._term_()
                 self.name_last_node('phi1')
+                self._boolop_()
+                self.name_last_node('op')
+                self._term_()
+                self.name_last_node('phi2')
+            with self._option():
+                self._term_()
+                self.name_last_node('phi1')
+            self._error('expecting one of: ( atom term ~')
+        self.ast._define(
+            ['op', 'phi1', 'phi2'],
+            []
+        )
+
+    @tatsumasu()
+    def _term_(self):  # noqa
+        with self._choice():
             with self._option():
                 self._token('(')
                 self._phi_()
                 self.name_last_node('phi1')
                 self._token(')')
-            self._error('expecting one of: ( /[AE]/ /[XFG]/ /\\b\\w+\\b|"[^"]+"|\'[^\']+\'/ atom phi quantifier unarymod ~')
+            with self._option():
+                self._token('~')
+                self.name_last_node('op')
+                self._term_()
+                self.name_last_node('phi1')
+            with self._option():
+                self._atom_()
+                self.name_last_node('phi1')
+            self._error('expecting one of: ( /\\b\\w+\\b|"[^"]+"|\'[^\']+\'/ atom ~')
         self.ast._define(
-            ['mod', 'op', 'phi1', 'phi2'],
+            ['op', 'phi1'],
             []
         )
 
@@ -233,6 +255,12 @@ class tlSemantics(object):
         return ast
 
     def phi(self, ast):  # noqa
+        return ast
+
+    def expr(self, ast):  # noqa
+        return ast
+
+    def term(self, ast):  # noqa
         return ast
 
     def boolop(self, ast):  # noqa

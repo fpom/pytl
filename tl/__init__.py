@@ -244,18 +244,33 @@ class Parser (object) :
            "<=>" : "iff"}
     def phi (self, st) :
         """
-        | "(" phi1:phi ")"
-        | op:"~" phi1:phi
         | mod:quantifier phi1:phi
         | mod:unarymod phi1:phi
-        | phi1:phi op:boolop phi2:phi
         | phi1:phi mod:binarymod phi2:phi
-        | phi1:atom
+        """
+        if st.phi2 is not None :
+            return self.c(st.mod.kind, st.phi1, st.phi2, **st.mod)
+        elif st.mod is not None :
+            return self.c(st.mod.kind, st.phi1, **st.mod)
+        else :
+            return st.phi1
+    def expr (self, st) :
+        """
+        | phi1:term op:boolop phi2:term
+        | phi1:term
         """
         if st.op is not None :
             return self.c(self._op[st.op], st.phi1, st.phi2)
-        elif st.mod is not None :
-            return self.c(st.mod.kind, st.phi1, st.phi2, **st.mod)
+        else :
+            return st.phi1
+    def term (self, st) :
+        """
+        | phi1:atom
+        | "(" phi1:phi ")"
+        | op:"~" phi1:term
+        """
+        if st.op is not None :
+            return self.c(self._op[st.op], st.phi1)
         else :
             return st.phi1
     def quantifier (self, st) :
