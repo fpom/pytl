@@ -242,6 +242,9 @@ class Parser (object) :
            "|" : "or",
            "=>" : "imply",
            "<=>" : "iff"}
+    def start (self, st) :
+        st.form["fair"] = st.fair
+        return st.form
     def phi (self, st) :
         """
         | mod:quantifier phi1:phi

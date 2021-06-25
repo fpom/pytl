@@ -1,7 +1,7 @@
 @@grammar :: tl
 
 start =
-    phi $
+    form:phi ["FAIR" fair:phi]$
     ;
 
 phi =

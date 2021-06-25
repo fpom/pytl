@@ -83,7 +83,16 @@ class tlParser(Parser):
     @tatsumasu()
     def _start_(self):  # noqa
         self._phi_()
+        self.name_last_node('form')
+        with self._optional():
+            self._token('FAIR')
+            self._phi_()
+            self.name_last_node('fair')
         self._check_eof()
+        self.ast._define(
+            ['fair', 'form'],
+            []
+        )
 
     @tatsumasu()
     def _phi_(self):  # noqa
