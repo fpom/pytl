@@ -2,10 +2,9 @@
 """
 
 import functools
-import re
-from .tlparse import tlParser
+from .tlparse import Lark_StandAlone, Transformer, v_args
 
-version = "0.1"
+version = "0.2"
 
 def translator (method) :
     @functools.wraps(method)
@@ -231,88 +230,47 @@ class Phi (dict) :
         return "(({})R({}))".format(self("its_ltl", node.children[0]),
                                     self("its_ltl", node.children[1]))
 
-class Parser (object) :
-    def __init__ (self, phiclass=Phi) :
-        self.p = tlParser()
-        self.c = phiclass
-    def __call__ (self, source) :
-        return self.p.parse(source, "start", semantics=self)
-    _op = {"~" : "not",
-           "&" : "and",
+@v_args(inline=True)
+class PhiTransformer (Transformer) :
+    c = Phi
+    def start (self, expr, fair=None) :
+        expr["fair"] = fair
+        return expr
+    def atom (self, token) :
+        value = token.value
+        if value == "True" :
+            return self.c("bool", value=True)
+        elif value == "False" :
+            return self.c("bool", value=False)
+        elif value[0] in ("'", '"') :
+            return self.c("name", value=value[1:-1], escaped=True)
+        else :
+            return self.c("name", value=value, escaped=False)
+    def nop (self, child) :
+        return child
+    def not_op (self, phi) :
+        return self.c("not", phi)
+    _op = {"&" : "and",
            "|" : "or",
            "=>" : "imply",
            "<=>" : "iff"}
-    def start (self, st) :
-        st.form["fair"] = st.fair
-        return st.form
-    def phi (self, st) :
-        """
-        | mod:quantifier phi1:phi
-        | mod:unarymod phi1:phi
-        | phi1:phi mod:binarymod phi2:phi
-        """
-        if st.phi2 is not None :
-            return self.c(st.mod.kind, st.phi1, st.phi2, **st.mod)
-        elif st.mod is not None :
-            return self.c(st.mod.kind, st.phi1, **st.mod)
-        else :
-            return st.phi1
-    def expr (self, st) :
-        """
-        | phi1:term op:boolop phi2:term
-        | phi1:term
-        """
-        if st.op is not None :
-            return self.c(self._op[st.op], st.phi1, st.phi2)
-        else :
-            return st.phi1
-    def term (self, st) :
-        """
-        | phi1:atom
-        | "(" phi1:phi ")"
-        | op:"~" phi1:term
-        """
-        if st.op is not None :
-            return self.c(self._op[st.op], st.phi1)
-        else :
-            return st.phi1
-    def quantifier (self, st) :
-        """
-        op:/[AE]/ { "{" act:action "}" }
-        """
-        return self.c(st.op, actions=st.act)
-    def unarymod (self, st) :
-        """
-        op:/[XFG]/ { "{" act:action "}" }
-        """
-        return self.c(st.op, actions=st.act)
-    def binarymod (self, st) :
-        """
-        { "{" act1:action "}" } op:/[UR]/ { "{" act2:action "}" }
-        """
-        return self.c(st.op, left_actions=st.act1, right_actions=st.act2)
-    def atom (self, st) :
-        """
-        /\w+|"\w+"|'\w+'/
-        """
-        if re.match('^([AE][XFG])|[AEXFGUR]$', st) :
-            raise ValueError(f"variable {st} should be quoted")
-        if st == "True" :
-            return self.c("bool", value=True)
-        elif st == "False" :
-            return self.c("bool", value=False)
-        else :
-            return self.c("name", value=st.strip("\"'"), escaped=st[0] in "\"'")
-    def actions (self, st) :
-        """
-        | "(" act1:actions ")"
-		| op:"~" act1:actions
-    	| act1:actions op:boolop act2:actions
-		| act1:atom
-        """
-        if st.op is not None :
-            return self.c(self._op[st.op], st.act1, st.act2)
-        else :
-            return st.act1
+    def bin_op (self, left, op, right) :
+        return self.c(self._op[op], left, right)
+    def unary_mod (self, quantifier, actions, path) :
+        ret = path
+        act = actions
+        for q in reversed(quantifier.value) :
+            if act is not None :
+                ret = self.c(q, ret, actions=act)
+                act = None
+            else :
+                ret = self.c(q, ret, actions=None)
+        return ret
+    def binary_mod (self, left, mod, actions, right) :
+        return self.c(mod.value, left, right, actions=actions)
 
-parse = Parser()
+def parse (form, phiclass=Phi) :
+    class _Transformer (PhiTransformer) :
+        c = phiclass
+    parser = Lark_StandAlone(transformer=_Transformer())
+    return parser.parse(form)

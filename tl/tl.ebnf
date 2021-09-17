@@ -1,53 +1,30 @@
-@@grammar :: tl
+%import common.WS
+%ignore WS
 
-start =
-    form:phi ["FAIR" fair:phi]$
-    ;
+start : phi [FAIR phi]
 
-phi =
-    | mod:quantifier phi1:phi
-    | mod:unarymod phi1:phi
-    | phi1:expr mod:binarymod phi2:expr
-    | phi1:expr
-    ;
+phi : ATOM                     -> atom
+    | "(" "~" phi ")"          -> not_op
+    | "(" phi BOOL phi ")"     -> bin_op
+    | QUAN [actions] path      -> unary_mod
 
-expr =
-    | phi1:term op:boolop phi2:term
-    | phi1:term
-    ;
+path : phi                     -> nop
+    | "(" "~" path ")"         -> not_op
+    | "(" path BOOL path ")"   -> bin_op
+    | UMOD [actions] path      -> unary_mod
+    | path BMOD [actions] path -> binary_mod
 
-term =
-    | "(" phi1:phi ")"
-    | op:"~" phi1:term
-    | phi1:atom
-    ;
+actions : "{" act_expr "}"     -> nop
 
-boolop =
-    | "&"
-    | "|"
-    | "=>"
-    | "<=>"
-    ;
+act_expr : "(" act_expr ")"    -> nop
+	| "~" act_expr             -> not_op
+    | act_expr BOOL act_expr   -> bin_op
+	| ATOM                     -> atom
 
-quantifier =
-    op:/[AE]/ [ "{" act:actions "}" ]
-    ;
+FAIR.2 : "FAIR"
+QUAN.1 : /[AE][XFG]?/
+UMOD.1 : /[XFG]/
+BMOD.1 : /[UR]/
+ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
+BOOL.0 : /&|\||=>|<=>/
 
-unarymod =
-    op:/[XFG]/ [ "{" act:actions "}" ]
-    ;
-
-binarymod =
-    [ "{" act1:actions "}" ] op:/[UR]/ [ "{" act2:actions "}" ]
-    ;
-
-atom =
-    /\b\w+\b|"[^"]+"|'[^']+'/
-    ;
-
-actions =
-	| "(" act1:actions ")"
-	| op:"~" act1:actions
-    | act1:actions op:boolop act2:actions
-	| act1:atom
-    ;
