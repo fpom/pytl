@@ -1,7 +1,7 @@
 """Python parser and translator for varied temporal logics
 """
 
-import functools
+import functools, re
 from .tlparse import Lark_StandAlone, Transformer, v_args
 
 version = "0.2"
@@ -236,8 +236,11 @@ class PhiTransformer (Transformer) :
     def start (self, expr, fair=None) :
         expr["fair"] = fair
         return expr
+    _not_atom = re.compile("^([AE][XFG])|[AEXFGUR]$")
     def atom (self, token) :
         value = token.value
+        if self._not_atom.match(value) :
+            raise ValueError(f"variable {value} should be quoted")
         if value == "True" :
             return self.c("bool", value=True)
         elif value == "False" :
