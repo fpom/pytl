@@ -1,25 +1,22 @@
 %import common.WS
 %ignore WS
 
-start : phi [FAIR phi]
+start : phi (BOOL phi)* [FAIR phi (BOOL phi)*]
 
-phi : ATOM                     -> atom
-    | "(" "~" phi ")"          -> not_op
-    | "(" phi BOOL phi ")"     -> bin_op
-    | QUAN [actions] path      -> unary_mod
+phi : sub                                      -> nop
+    | QUAN [actions] sub                       -> unary_mod
+    | UMOD [actions] sub                       -> unary_mod
+    | sub BMOD [actions] sub                   -> binary_mod
 
-path : phi                     -> nop
-    | "(" "~" path ")"         -> not_op
-    | "(" path BOOL path ")"   -> bin_op
-    | UMOD [actions] path      -> unary_mod
-    | path BMOD [actions] path -> binary_mod
+sub : ATOM                                     -> atom
+    | "~" sub                                  -> not_op
+    | "(" phi (BOOL phi)* ")"                  -> bin_op
+    
+actions : "{" act_expr (BOOL act_expr)* "}"    -> bin_op
 
-actions : "{" act_expr "}"     -> nop
-
-act_expr : "(" act_expr ")"    -> nop
-	| "~" act_expr             -> not_op
-    | act_expr BOOL act_expr   -> bin_op
-	| ATOM                     -> atom
+act_expr : "(" act_expr (BOOL act_expr)* ")"   -> bin_op
+	| "~" act_expr                             -> not_op
+	| ATOM                                     -> atom
 
 FAIR.2 : "FAIR"
 QUAN.1 : /[AE][XFG]?/

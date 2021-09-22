@@ -2,7 +2,7 @@
 """
 
 import functools, re
-from .tlparse import Lark_StandAlone, Transformer, v_args
+from .tlparse import Lark_StandAlone, Transformer, v_args, Token
 
 version = "0.2"
 
@@ -233,9 +233,13 @@ class Phi (dict) :
 @v_args(inline=True)
 class PhiTransformer (Transformer) :
     c = Phi
-    def start (self, expr, fair=None) :
-        expr["fair"] = fair
-        return expr
+    def start (self, *items) :
+        for pos, val in enumerate(items) :
+            if isinstance(val, Token) and val.type == "FAIR" :
+                main = self.bin_op(*items[:pos])
+                main["fair"] = self.bin_op(*items[pos+1:])
+                return main
+        return self.bin_op(*items)
     _not_atom = re.compile("^([AE][XFG])|[AEXFGUR]$")
     def atom (self, token) :
         value = token.value
@@ -257,8 +261,12 @@ class PhiTransformer (Transformer) :
            "|" : "or",
            "=>" : "imply",
            "<=>" : "iff"}
-    def bin_op (self, left, op, right) :
-        return self.c(self._op[op], left, right)
+    def bin_op (self, first, *rest) :
+        if not rest :
+            return first
+        assert all(op.value == rest[0].value for op in
+                   rest[::2]), "cannot chain distinct Boolean operators"
+        return self.c(self._op[rest[0].value], first, *rest[1::2])
     def unary_mod (self, quantifier, actions, path) :
         ret = path
         act = actions
