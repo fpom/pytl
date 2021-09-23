@@ -17,8 +17,8 @@ exp : "(" exp (BOOL exp)* ")"  -> bin_op
     | ATOM                     -> atom
 
 FAIR.3 : /\bFAIR\b/
-QMOD.2 : /\b[AEXFG]+\b/
-QUAN.1 : /\b[AE][AEXFG]*\b/
+QUAN.2 : /\b[AE][AEXFG]*\b/
+QMOD.1 : /\b[AEXFG]+\b/
 BMOD.1 : /\b[UR]\b/
 ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
 BOOL.0 : /&|\||=>|<=>/
