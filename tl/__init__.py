@@ -267,18 +267,22 @@ class PhiTransformer (Transformer) :
         assert all(op.value == rest[0].value for op in
                    rest[::2]), "cannot chain distinct Boolean operators"
         return self.c(self._op[rest[0].value], first, *rest[1::2])
-    def unary_mod (self, quantifier, actions, path) :
-        ret = path
-        act = actions
-        for q in reversed(quantifier.value) :
-            if act is not None :
-                ret = self.c(q, ret, actions=act)
-                act = None
-            else :
-                ret = self.c(q, ret, actions=None)
-        return ret
-    def binary_mod (self, left, mod, actions, right) :
-        return self.c(mod.value, left, right, actions=actions)
+    def mod (self, *items) :
+        if items[-1] is not None :
+            *items, left, mod, act, right = items
+            form = self.c(mod.value, left, right, actions=act)
+        else :
+            *items, form = items
+        quant = []
+        for q in items :
+            if isinstance(q, Token) :
+                quant.extend(self.c(v) for v in q.value)
+            elif q is not None :
+                quant[-1]["actions"] = q
+        for q in reversed(quant) :
+            q.children = (form,)
+            form = q
+        return form
 
 def parse (form, phiclass=Phi) :
     class _Transformer (PhiTransformer) :

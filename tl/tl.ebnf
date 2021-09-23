@@ -3,24 +3,22 @@
 
 start : phi (BOOL phi)* (FAIR phi (BOOL phi)*)?
 
-phi : sub                       -> nop
-    | QUAN [act] sub            -> unary_mod
-    | UMOD [act] sub            -> unary_mod
-    | sub BMOD [act] sub        -> binary_mod
+phi : sub                                            -> nop
+    | QUAN [act] (QMOD [act])* sub [BMOD [act] sub]  -> mod
 
-sub : ATOM                      -> atom
-    | "~" sub                   -> not_op
-    | "(" phi (BOOL phi)* ")"   -> bin_op
+sub : "(" phi (BOOL phi)* ")"  -> bin_op
+    | "~" sub                  -> not_op
+    | ATOM                     -> atom
     
-act : "{" exp (BOOL exp)* "}"   -> bin_op
+act : "{" exp (BOOL exp)* "}"  -> bin_op
 
-exp : "(" exp (BOOL exp)* ")"   -> bin_op
-	| "~" exp                   -> not_op
-	| ATOM                      -> atom
+exp : "(" exp (BOOL exp)* ")"  -> bin_op
+    | "~" exp                  -> not_op
+    | ATOM                     -> atom
 
-FAIR.2 : "FAIR"
-QUAN.1 : /[AE][XFG]?/
-UMOD.1 : /[XFG]/
-BMOD.1 : /[UR]/
+FAIR.3 : /\bFAIR\b/
+QMOD.2 : /\b[AEXFG]+\b/
+QUAN.1 : /\b[AE][AEXFG]*\b/
+BMOD.1 : /\b[UR]\b/
 ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
 BOOL.0 : /&|\||=>|<=>/
