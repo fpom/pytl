@@ -234,12 +234,14 @@ class Phi (dict) :
 class PhiTransformer (Transformer) :
     c = Phi
     def start (self, *items) :
+        if items[-1] is None :
+            return self.bin_op(*items[:-1])
         for pos, val in enumerate(items) :
             if isinstance(val, Token) and val.type == "FAIR" :
                 main = self.bin_op(*items[:pos])
                 main["fair"] = self.bin_op(*items[pos+1:])
                 return main
-        return self.bin_op(*items)
+        assert False, "expected FAIR token was not found"
     _not_atom = re.compile("^([AE][XFG])|[AEXFGUR]$")
     def atom (self, token) :
         value = token.value

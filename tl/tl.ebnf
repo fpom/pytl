@@ -1,7 +1,7 @@
 %import common.WS
 %ignore WS
 
-start : phi (BOOL phi)* (FAIR phi (BOOL phi)*)?
+start : phi (BOOL phi)* [FAIR phi (BOOL phi)*]
 
 phi : sub                                            -> nop
     | QUAN [act] (QMOD [act])* sub [BMOD [act] sub]  -> mod
