@@ -273,7 +273,6 @@ class PhiTransformer (Transformer) :
     def mod (self, *items) :
         if items[-1] is not None :
             *items, left, mod, act, right = items
-            print(items, left, mod, act, right)
             form = self.c(mod.value, left, right, actions=act)
         else :
             *items, form, _ = items
