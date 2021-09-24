@@ -44,7 +44,6 @@ class Phi (dict) :
     ##
     @translator
     def ctl (self) :
-        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("ctl", self)
     def _ctl (self, node) :
         return self.__class__(node.kind,
@@ -89,7 +88,6 @@ class Phi (dict) :
     ##
     @translator
     def arctl (self) :
-        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("arctl", self)
     def _arctl (self, node) :
         return self.__class__(node.kind,
@@ -132,7 +130,6 @@ class Phi (dict) :
     ##
     @translator
     def its_ctl (self) :
-        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("its_ctl", self) + ";"
     def _its_ctl_name (self, node) :
         if node.escaped :
