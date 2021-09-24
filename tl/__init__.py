@@ -242,7 +242,7 @@ class PhiTransformer (Transformer) :
                 main = self.bin_op(*items[:pos])
                 main["fair"] = self.bin_op(*items[pos+1:])
                 return main
-        assert False, "expected FAIR token was not found"
+        return self.bin_op(*items)
     _not_atom = re.compile("^[AEXFGURWM]+$")
     def atom (self, token) :
         value = token.value
