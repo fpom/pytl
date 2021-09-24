@@ -44,6 +44,7 @@ class Phi (dict) :
     ##
     @translator
     def ctl (self) :
+        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("ctl", self)
     def _ctl (self, node) :
         return self.__class__(node.kind,
@@ -88,6 +89,7 @@ class Phi (dict) :
     ##
     @translator
     def arctl (self) :
+        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("arctl", self)
     def _arctl (self, node) :
         return self.__class__(node.kind,
@@ -130,6 +132,7 @@ class Phi (dict) :
     ##
     @translator
     def its_ctl (self) :
+        assert self.kind in ("A", "E"), "formula must start with a quantifier"
         return self("its_ctl", self) + ";"
     def _its_ctl_name (self, node) :
         if node.escaped :
@@ -234,15 +237,10 @@ class Phi (dict) :
 @v_args(inline=True)
 class PhiTransformer (Transformer) :
     c = Phi
-    def start (self, *items) :
-        if items[-1] is None :
-            return self.bin_op(*items[:-1])
-        for pos, val in enumerate(items) :
-            if isinstance(val, Token) and val.type == "FAIR" :
-                main = self.bin_op(*items[:pos])
-                main["fair"] = self.bin_op(*items[pos+1:])
-                return main
-        return self.bin_op(*items)
+    def start (self, main, *rest) :
+        if rest :
+            main["fair"] = rest[-1]
+        return main
     _not_atom = re.compile("^[AEXFGURWM]+$")
     def atom (self, token) :
         value = token.value

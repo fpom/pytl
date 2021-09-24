@@ -1,24 +1,24 @@
 %import common.WS
 %ignore WS
 
-start : phi (BOOL phi)* [FAIR phi (BOOL phi)*]
+start : bool [FAIR bool]
 
-phi : sub                                            -> nop
-    | QUAN [act] (QMOD [act])* sub [BMOD [act] sub]  -> mod
+bool : phi (BOOL phi)*                    -> bin_op
 
-sub : "(" phi (BOOL phi)* ")"  -> bin_op
-    | "~" sub                  -> not_op
-    | ATOM                     -> atom
-    
-act : "{" exp (BOOL exp)* "}"  -> bin_op
+phi : (UMOD [act])* sub [BMOD [act] sub]  -> mod
 
-exp : "(" exp (BOOL exp)* ")"  -> bin_op
-    | "~" exp                  -> not_op
-    | ATOM                     -> atom
+sub : "(" phi (BOOL phi)* ")"             -> bin_op
+    | "~" sub                             -> not_op
+    | ATOM                                -> atom
 
-FAIR.3 : /\bFAIR\b/
-QUAN.2 : /\b[AE][AEXFG]*\b/
-QMOD.1 : /\b[AEXFG]+\b/
+act : "{" exp (BOOL exp)* "}"             -> bin_op
+
+exp : "(" exp (BOOL exp)* ")"             -> bin_op
+    | "~" exp                             -> not_op
+    | ATOM                                -> atom
+
+FAIR.2 : /\bFAIR\b/
+UMOD.1 : /\b[AEXFG]+\b/
 BMOD.1 : /\b[URWM]\b/
 ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
 BOOL.0 : /&|\||=>|<=>/
