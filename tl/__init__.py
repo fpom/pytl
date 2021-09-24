@@ -64,21 +64,21 @@ class Phi (dict) :
     def _ctl_iff (self, node) :
         return self._ctl(node)
     def _ctl_A (self, node) :
-        assert node.children[0].kind in "XFGUR", "A must be followed by X, F, G, U, or R"
+        assert node.children[0].kind in "XFGURWM", "A must be followed by X, F, G, U, R, W, or M"
         assert not node.actions, "actions not allowed"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
         for child in node.children[0].children :
-            assert child.kind not in "FGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
         return self.__class__("A" + node.children[0].kind,
                               *(self("ctl", child)
                                 for child in node.children[0].children),
                               **node)
     def _ctl_E (self, node) :
-        assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
+        assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
         assert not node.actions, "actions not allowed"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
         for child in node.children[0].children :
-            assert child.kind not in "FGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
         return self.__class__("E" + node.children[0].kind,
                               *(self("ctl", child)
                                 for child in node.children[0].children),
@@ -108,19 +108,19 @@ class Phi (dict) :
     def _arctl_iff (self, node) :
         return self._arctl(node)
     def _arctl_A (self, node) :
-        assert node.children[0].kind in "XFGUR", "A must be followed by X, F, G, U, or R"
+        assert node.children[0].kind in "XFGURWM", "A must be followed by X, F, G, U, R, W, or M"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
         for child in node.children[0].children :
-            assert child.kind not in "FGURX", f"cannot nest {child.kind} in A{node.children[0].kind}"
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
         return self.__class__("A" + node.children[0].kind,
                               *(self("arctl", child)
                                 for child in node.children[0].children),
                               **node)
     def _arctl_E (self, node) :
-        assert node.children[0].kind in "XFGUR", "E must be followed by X, F, G, U, or R"
+        assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
         for child in node.children[0].children :
-            assert child.kind not in "FGURX", f"cannot nest {child.kind} in E{node.children[0].kind}"
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
         return self.__class__("E" + node.children[0].kind,
                               *(self("arctl", child)
                                 for child in node.children[0].children),
@@ -188,6 +188,7 @@ class Phi (dict) :
     ##
     @translator
     def its_ltl (self) :
+        # FIXME? remove A/E when it's the top-most quantifier
         return self("its_ltl", self)
     def _its_ltl_name (self, node) :
         if node.escaped :
@@ -242,7 +243,7 @@ class PhiTransformer (Transformer) :
                 main["fair"] = self.bin_op(*items[pos+1:])
                 return main
         assert False, "expected FAIR token was not found"
-    _not_atom = re.compile("^([AE][XFG])|[AEXFGUR]$")
+    _not_atom = re.compile("^[AEXFGURWM]+$")
     def atom (self, token) :
         value = token.value
         if self._not_atom.match(value) :

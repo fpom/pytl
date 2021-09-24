@@ -19,6 +19,6 @@ exp : "(" exp (BOOL exp)* ")"  -> bin_op
 FAIR.3 : /\bFAIR\b/
 QUAN.2 : /\b[AE][AEXFG]*\b/
 QMOD.1 : /\b[AEXFG]+\b/
-BMOD.1 : /\b[UR]\b/
+BMOD.1 : /\b[URWM]\b/
 ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
 BOOL.0 : /&|\||=>|<=>/
