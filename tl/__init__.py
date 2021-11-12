@@ -141,11 +141,11 @@ class Phi (dict) :
     def _its_ctl_not (self, node) :
         return "!({})".format(self("its_ctl", node.children[0]))
     def _its_ctl_and (self, node) :
-        return "({})&&({})".format(self("its_ctl", node.children[0]),
-                                   self("its_ctl", node.children[1]))
+        return "&&".join("({})".format(self("its_ctl", child))
+                         for child in node.children)
     def _its_ctl_or (self, node) :
-        return "({})||({})".format(self("its_ctl", node.children[0]),
-                                   self("its_ctl", node.children[1]))
+        return "||".join("({})".format(self("its_ctl", child))
+                         for child in node.children)
     def _its_ctl_imply (self, node) :
         return "({})->({})".format(self("its_ctl", node.children[0]),
                                    self("its_ctl", node.children[1]))
@@ -200,11 +200,11 @@ class Phi (dict) :
     def _its_ltl_not (self, node) :
         return "!({})".format(self("its_ltl", node.children[0]))
     def _its_ltl_and (self, node) :
-        return "({})&&({})".format(self("its_ltl", node.children[0]),
-                                   self("its_ltl", node.children[1]))
+        return "&&".join("({})".format(self("its_ltl", child))
+                         for child in node.children)
     def _its_ltl_or (self, node) :
-        return "({})||({})".format(self("its_ltl", node.children[0]),
-                                   self("its_ltl", node.children[1]))
+        return "||".join("({})".format(self("its_ltl", child))
+                         for child in node.children)
     def _its_ltl_imply (self, node) :
         return "({})->({})".format(self("its_ltl", node.children[0]),
                                    self("its_ltl", node.children[1]))
