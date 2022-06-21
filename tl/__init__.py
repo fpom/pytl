@@ -39,6 +39,10 @@ class Phi (dict) :
             raise ValueError(f"invalid {syntax} formula ({err})")
     def __bool__(self):
       	return True
+    def __iter__ (self) :
+        yield self
+        for child in self.children :
+            yield from child
     ##
     ## CTL tree
     ##
@@ -234,9 +238,18 @@ class Phi (dict) :
 @v_args(inline=True)
 class PhiTransformer (Transformer) :
     c = Phi
-    def start (self, main, *rest) :
-        if rest :
-            main["fair"] = rest[-1]
+    def start (self, restr, main) :
+        if restr is not None :
+            for node in main :
+                if not isinstance(node, self.c) :
+                    continue
+                if node.kind in ("A", "E") :
+                    for fair in restr.fairness :
+                        getattr(node, fair.kind).append(fair)
+                if node.kind in ("A", "E", "X", "F", "G", "U", "R", "W", "M") :
+                    if restr.actions is not None :
+                        assert node.actions is None, "cannot propagate global action restriction to an already restricted modality"
+                        node["actions"] = restr.actions
         return main
     _not_atom = re.compile("^[AEXFGURWM]+$")
     def atom (self, token) :
@@ -266,24 +279,73 @@ class PhiTransformer (Transformer) :
                    rest[::2]), "cannot chain distinct Boolean operators"
         return self.c(self._op[rest[0].value], first, *rest[1::2])
     def mod (self, *items) :
+        # phi : (UMOD [restrict])* sub [BMOD [act] sub]
         if items[-1] is not None :
             *items, left, mod, act, right = items
-            form = self.c(mod.value, left, right, actions=act)
+            form = self.c(mod.value, left, right,
+                          actions=act)
         else :
             *items, form, _ = items
         quant = []
         for q in items :
             if isinstance(q, Token) :
-                quant.extend(self.c(v) for v in q.value)
+                quant.extend(self.c(v, ufair=[], wfair=[], sfair=[]) for v in q.value)
             elif q is not None :
-                quant[-1]["actions"] = q
+                quant[-1]["actions"] = q.actions
+                for fair in q.fairness :
+                    assert quant[-1].kind in "EA", f"cannot have fairness on {quant[-1].kind}"
+                    getattr(quant[-1], fair.kind).append(fair)
         for q in reversed(quant) :
             q.children = (form,)
             form = q
         return form
+    def act (self, *items) :
+        return self.c("actions", self.bin_op(*items))
+    def restrict (self, *items) :
+        # restrict : (act | fair)+
+        form = self.c("restrict", actions=[], fairness=[])
+        for i in items :
+            if i.kind == "actions" :
+                form.actions.append(i)
+            else :
+                form.fairness.append(i)
+        if not form.actions :
+            form.actions = None
+        elif len(form.actions) == 1 :
+            form.actions = form.actions[0].children[0]
+        else :
+            assert False, "multiple action formulas not allowed"
+        return form
+    def fair (self, *items) :
+        # fair : "[" FAIR (act | bool) [THEN (act | bool)] "]"  -> fair
+        fair, *rest = items
+        if rest[-1] is None :
+            cond, then = None, rest[0]
+        else :
+            cond, _, then = rest
+        if fair != "UFAIR" and cond is None :
+            if then.kind == "actions" :
+                cond = self.c("E", self.c("X", "True"), actions=[then])
+            else :
+                assert False, f"{fair} must have a condition or apply on an action"
+        return self.c(fair.lower(),
+                      condition=cond,
+                      then=then)
 
 def parse (form, phiclass=Phi) :
     class _Transformer (PhiTransformer) :
         c = phiclass
     parser = Lark_StandAlone(transformer=_Transformer())
     return parser.parse(form)
+
+Phi('A',
+    Phi('F',
+        Phi('bool', value=True),
+        ufair=[],
+        wfair=[],
+        sfair=[]),
+    ufair=[Phi('ufair', then=Phi('name', value='a', escaped=False)),
+           Phi('ufair', then=Phi('name', value='b', escaped=False))],
+    wfair=[],
+    sfair=[],
+    actions=[Phi('actions', Phi('name', value='a', escaped=False))])

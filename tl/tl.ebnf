@@ -1,23 +1,28 @@
 %import common.WS
 %ignore WS
 
-start : bool [FAIR bool]
+start : [restrict] bool
 
-bool : phi (BOOL phi)*                    -> bin_op
+bool : phi (BOOL phi)*                                -> bin_op
 
-phi : (UMOD [act])* sub [BMOD [act] sub]  -> mod
+phi : (UMOD [restrict])* sub [BMOD [act] sub]         -> mod
 
-sub : "(" phi (BOOL phi)* ")"             -> bin_op
-    | "~" sub                             -> not_op
-    | ATOM                                -> atom
+restrict : (act | fair)+                              -> restrict
 
-act : "{" exp (BOOL exp)* "}"             -> bin_op
+sub : "(" phi (BOOL phi)* ")"                         -> bin_op
+    | "~" sub                                         -> not_op
+    | ATOM                                            -> atom
 
-exp : "(" exp (BOOL exp)* ")"             -> bin_op
-    | "~" exp                             -> not_op
-    | ATOM                                -> atom
+act : "{" exp (BOOL exp)* "}"                         -> act
 
-FAIR.2 : /\bFAIR\b/
+exp : "(" exp (BOOL exp)* ")"                         -> bin_op
+    | "~" exp                                         -> not_op
+    | ATOM                                            -> atom
+
+fair : "[" FAIR (act | bool) [THEN (act | bool)] "]"  -> fair
+    
+FAIR.2 : /\b[UWS]FAIR\b/
+THEN.2 : /\bTHEN\b/
 UMOD.1 : /\b[AEXFG]+\b/
 BMOD.1 : /\b[URWM]\b/
 ATOM.0 : /\b\w+\b|"[^"]+"|'[^']+'/
