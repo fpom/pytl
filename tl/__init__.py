@@ -244,12 +244,11 @@ class PhiTransformer (Transformer) :
                 if not isinstance(node, self.c) :
                     continue
                 if node.kind in ("A", "E") :
-                    for fair in restr.fairness :
-                        getattr(node, fair.kind).append(fair)
-                if node.kind in ("A", "E", "X", "F", "G", "U", "R", "W", "M") :
                     if restr.actions is not None :
                         assert node.actions is None, "cannot propagate global action restriction to an already restricted modality"
                         node["actions"] = restr.actions
+                    for fair in restr.fairness :
+                        getattr(node, fair.kind).append(fair)
         return main
     _not_atom = re.compile("^[AEXFGURWM]+$")
     def atom (self, token) :
@@ -337,15 +336,3 @@ def parse (form, phiclass=Phi) :
         c = phiclass
     parser = Lark_StandAlone(transformer=_Transformer())
     return parser.parse(form)
-
-Phi('A',
-    Phi('F',
-        Phi('bool', value=True),
-        ufair=[],
-        wfair=[],
-        sfair=[]),
-    ufair=[Phi('ufair', then=Phi('name', value='a', escaped=False)),
-           Phi('ufair', then=Phi('name', value='b', escaped=False))],
-    wfair=[],
-    sfair=[],
-    actions=[Phi('actions', Phi('name', value='a', escaped=False))])
