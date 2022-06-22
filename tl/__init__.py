@@ -324,7 +324,7 @@ class PhiTransformer (Transformer) :
             cond, _, then = rest
         if fair != "UFAIR" and cond is None :
             if then.kind == "actions" :
-                cond = self.c("E", self.c("X", "True"), actions=[then])
+                cond = self.c("E", self.c("X", "True"), actions=then)
             else :
                 assert False, f"{fair} must have a condition or apply on an action"
         return self.c(fair.lower(),
