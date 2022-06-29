@@ -70,6 +70,7 @@ class Phi (dict) :
     def _ctl_A (self, node) :
         assert node.children[0].kind in "XFGURWM", "A must be followed by X, F, G, U, R, W, or M"
         assert not node.actions, "actions not allowed"
+        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
         for child in node.children[0].children :
             assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
@@ -80,6 +81,7 @@ class Phi (dict) :
     def _ctl_E (self, node) :
         assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
         assert not node.actions, "actions not allowed"
+        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
         for child in node.children[0].children :
             assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
@@ -116,19 +118,47 @@ class Phi (dict) :
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
         for child in node.children[0].children :
             assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
+        kwargs = dict()
+        for key, value in node.items():
+            if key in ("ufair", "wfair", "sfair"):
+                kwargs[key] = []
+                for x in value:
+                    f = self.__class__(x.kind, *(x.children), **x)
+                    if key in ("wfair", "sfair"):
+                        if f.condition.kind != "actions":
+                            f["condition"] = self("arctl", f.condition)
+                    if f.then.kind != "actions":
+                        f["then"] = self("arctl", f.then)
+                    kwargs[key].append(f)
+            else:
+                kwargs[key] = value
         return self.__class__("A" + node.children[0].kind,
                               *(self("arctl", child)
                                 for child in node.children[0].children),
-                              **node)
+                              **kwargs)
     def _arctl_E (self, node) :
         assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
         assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
         for child in node.children[0].children :
             assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
+        kwargs = dict()
+        for key, value in node.items():
+            if key in ("ufair", "wfair", "sfair"):
+                kwargs[key] = []
+                for x in value:
+                    f = self.__class__(x.kind, *(x.children), **x)
+                    if key in ("wfair", "sfair"):
+                        if f.condition.kind != "actions":
+                            f["condition"] = self("arctl", f.condition)
+                    if f.then.kind != "actions":
+                        f["then"] = self("arctl", f.then)
+                    kwargs[key].append(f)
+            else:
+                kwargs[key] = value
         return self.__class__("E" + node.children[0].kind,
                               *(self("arctl", child)
                                 for child in node.children[0].children),
-                              **node)
+                              **kwargs)
     ##
     ## ITS CTL syntax
     ##
@@ -324,7 +354,7 @@ class PhiTransformer (Transformer) :
             cond, _, then = rest
         if fair != "UFAIR" and cond is None :
             if then.kind == "actions" :
-                cond = self.c("E", self.c("X", "True"), actions=then.children[0])
+                cond = self.c("E", self.c("X", self.c("bool", value=True)), actions=then.children[0])
             else :
                 assert False, f"{fair} must have a condition or apply on an action"
         return self.c(fair.lower(),
