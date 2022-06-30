@@ -67,28 +67,21 @@ class Phi (dict) :
         return self._ctl(node)
     def _ctl_iff (self, node) :
         return self._ctl(node)
+    def __CTL_quantifier(self, node):
+        assert node.children[0].kind in "XFGURWM", f"{node.kind} must be followed by X, F, G, U, R, W, or M"
+        assert not node.actions, "actions not allowed"
+        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
+        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
+        for child in node.children[0].children :
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in {node.kind}{node.children[0].kind}"
+        return self.__class__(node.kind + node.children[0].kind,
+                              *(self("ctl", child)
+                                for child in node.children[0].children),
+                              **node)
     def _ctl_A (self, node) :
-        assert node.children[0].kind in "XFGURWM", "A must be followed by X, F, G, U, R, W, or M"
-        assert not node.actions, "actions not allowed"
-        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
-        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
-        for child in node.children[0].children :
-            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
-        return self.__class__("A" + node.children[0].kind,
-                              *(self("ctl", child)
-                                for child in node.children[0].children),
-                              **node)
+        return self.__CTL_quantifier(node)
     def _ctl_E (self, node) :
-        assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
-        assert not node.actions, "actions not allowed"
-        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
-        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed"
-        for child in node.children[0].children :
-            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
-        return self.__class__("E" + node.children[0].kind,
-                              *(self("ctl", child)
-                                for child in node.children[0].children),
-                              **node)
+        return self.__CTL_quantifier(node)
     ##
     ## ARCTL tree
     ##
@@ -113,52 +106,33 @@ class Phi (dict) :
         return self._arctl(node)
     def _arctl_iff (self, node) :
         return self._arctl(node)
+    def __arctl_quantifier(self, node):
+        assert node.children[0].kind in "XFGURWM", f"{node.kind} must be followed by X, F, G, U, R, W, or M"
+        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
+        for child in node.children[0].children :
+            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in {node.kind}{node.children[0].kind}"
+        kwargs = dict()
+        for key, value in node.items():
+            if key in ("ufair", "wfair", "sfair"):
+                kwargs[key] = []
+                for x in value:
+                    f = self.__class__(x.kind, *(x.children), **x)
+                    if key in ("wfair", "sfair"):
+                        if f.condition.kind != "actions":
+                            f["condition"] = self("arctl", f.condition)
+                    if f.then.kind != "actions":
+                        f["then"] = self("arctl", f.then)
+                    kwargs[key].append(f)
+            else:
+                kwargs[key] = value
+        return self.__class__(node.kind + node.children[0].kind,
+                              *(self("arctl", child)
+                                for child in node.children[0].children),
+                              **kwargs)
     def _arctl_A (self, node) :
-        assert node.children[0].kind in "XFGURWM", "A must be followed by X, F, G, U, R, W, or M"
-        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
-        for child in node.children[0].children :
-            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in A{node.children[0].kind}"
-        kwargs = dict()
-        for key, value in node.items():
-            if key in ("ufair", "wfair", "sfair"):
-                kwargs[key] = []
-                for x in value:
-                    f = self.__class__(x.kind, *(x.children), **x)
-                    if key in ("wfair", "sfair"):
-                        if f.condition.kind != "actions":
-                            f["condition"] = self("arctl", f.condition)
-                    if f.then.kind != "actions":
-                        f["then"] = self("arctl", f.then)
-                    kwargs[key].append(f)
-            else:
-                kwargs[key] = value
-        return self.__class__("A" + node.children[0].kind,
-                              *(self("arctl", child)
-                                for child in node.children[0].children),
-                              **kwargs)
+        return self.__arctl_quantifier(node)
     def _arctl_E (self, node) :
-        assert node.children[0].kind in "XFGURWM", "E must be followed by X, F, G, U, R, W, or M"
-        assert not (node.children[0].actions or node.children[0].left_actions or node.children[0].right_actions), "actions not allowed on temporal operators"
-        for child in node.children[0].children :
-            assert child.kind not in "FGURXWM", f"cannot nest {child.kind} in E{node.children[0].kind}"
-        kwargs = dict()
-        for key, value in node.items():
-            if key in ("ufair", "wfair", "sfair"):
-                kwargs[key] = []
-                for x in value:
-                    f = self.__class__(x.kind, *(x.children), **x)
-                    if key in ("wfair", "sfair"):
-                        if f.condition.kind != "actions":
-                            f["condition"] = self("arctl", f.condition)
-                    if f.then.kind != "actions":
-                        f["then"] = self("arctl", f.then)
-                    kwargs[key].append(f)
-            else:
-                kwargs[key] = value
-        return self.__class__("E" + node.children[0].kind,
-                              *(self("arctl", child)
-                                for child in node.children[0].children),
-                              **kwargs)
+        return self.__arctl_quantifier(node)
     ##
     ## ITS CTL syntax
     ##
@@ -189,10 +163,12 @@ class Phi (dict) :
     def _its_ctl_A (self, node) :
         assert node.children[0].kind in "XFGUE", "A must be followed by X, F, G, U, or R"
         assert not node.actions, "actions not allowed"
+        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
         return "A" + self("its_ctl", node.children[0])
     def _its_ctl_E (self, node) :
         assert node.children[0].kind in "XFGUE", "E must be followed by X, F, G, U, or R"
         assert not node.actions, "actions not allowed"
+        assert (not node.ufair) and (not node.wfair) and (not node.sfair), "fairness not allowed"
         return "E" + self("its_ctl", node.children[0])
     def _its_ctl_X (self, node) :
         assert not node.actions, "actions not allowed"
