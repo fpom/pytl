@@ -20,7 +20,7 @@ The syntax of an input formula `phi` is as follows:
     
     boolop ::= "&" | "|" | "=>" | "<=>"
     
-    binarymod ::= ("{" actions "}")? ("U" | "R") ("{" actions "}")?
+    binarymod ::= ("{" actions "}")? ("U" | "R" | "W" | "M") ("{" actions "}")?
     
     atom ::= /\w+|"[^\"]+"|'[^\']+'/
     
