@@ -1,7 +1,7 @@
 """Python parser and translator for varied temporal logics
 """
 
-import functools, re
+import functools, re, ast
 from .tlparse import Lark_StandAlone, Transformer, v_args, Token
 
 version = "0.2"
@@ -140,10 +140,7 @@ class Phi (dict) :
     def its_ctl (self) :
         return self("its_ctl", self) + ";"
     def _its_ctl_name (self, node) :
-        if node.escaped :
-            return '"{}"'.format(node.value)
-        else :
-            return '"{}=1"'.format(node.value)
+        return '"{}"'.format(node.value)
     def _its_ctl_bool (self, node) :
         return str(node.value).lower()
     def _its_ctl_not (self, node) :
@@ -201,10 +198,7 @@ class Phi (dict) :
         # FIXME? remove A/E when it's the top-most quantifier
         return self("its_ltl", self)
     def _its_ltl_name (self, node) :
-        if node.escaped :
-            return '"{}"'.format(node.value)
-        else :
-            return '"{}=1"'.format(node.value)
+        return '"{}"'.format(node.value)
     def _its_ttl_bool (self, node) :
         return str(node.value).lower()
     def _its_ltl_not (self, node) :
@@ -266,9 +260,9 @@ class PhiTransformer (Transformer) :
         elif value == "False" :
             return self.c("bool", value=False)
         elif value[0] in ("'", '"') :
-            return self.c("name", value=value[1:-1], escaped=True)
+            return self.c("name", value=ast.literal_eval(value))
         else :
-            return self.c("name", value=value, escaped=False)
+            return self.c("name", value=value)
     def nop (self, child) :
         return child
     def not_op (self, phi) :
